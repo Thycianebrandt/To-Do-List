@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Tarefas</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 30px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #121212;
+      color: #f5f5f5;
+    }
+
+    #container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark #container {
+      background: #1e1e1e;
+      color: #f5f5f5;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    body.dark input[type="text"] {
+      background: #2c2c2c;
+      border: 1px solid #555;
+      color: #f5f5f5;
+    }
+
+    input[type="text"]:focus {
+      border-color: #4CAF50;
+    }
+
+    button {
+      padding: 10px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: white;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+      max-height: 250px; /* altura máxima antes do scroll */
+      overflow-y: auto; /* ativa o scroll vertical */
+    }
+
+    li {
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #f1f1f1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+
+    body.dark li {
+      background: #2c2c2c;
+    }
+
+    li.completed {
+      text-decoration: line-through;
+      color: #888;
+      background: #dfe6e9;
+    }
+
+    body.dark li.completed {
+      background: #1e1e1e;
+      color: #aaa;
+    }
+
+    .botoes button {
+      background-color: #ccc;
+      color: #333;
+      margin-left: 5px;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    .botoes button:hover {
+      opacity: 0.8;
+    }
+
+    .botoes button:nth-child(1) {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .botoes button:nth-child(2) {
+      background-color: #2196F3;
+      color: white;
+    }
+
+    .botoes button:nth-child(3) {
+      background-color: #f44336;
+      color: white;
+    }
+
+    /* Botão de tema */
+    #temaBtn {
+      margin-top: 15px;
+      width: 100%;
+      background-color: #333;
+    }
+
+    #temaBtn:hover {
+      background-color: #111;
+    }
+
+    @media screen and (max-width: 600px) {
+      .input-area {
+        flex-direction: column;
+      }
+
+      #adicionarBtn {
+        width: 100%;
+      }
+
+      .botoes {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      li {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>🗒 Lista de Tarefas</h1>
+    
+    <div class="input-area">
+      <input type="text" id="tarefaInput" placeholder="Digite uma tarefa">
+      <button id="adicionarBtn">Adicionar</button>
+    </div>
+
+    <ul id="listaTarefas"></ul>
+
+    <button id="temaBtn">🌙 Alterar Tema</button>
+  </div>
+
+  <script>
+    const input = document.getElementById('tarefaInput');
+    const btn = document.getElementById('adicionarBtn');
+    const lista = document.getElementById('listaTarefas');
+    const temaBtn = document.getElementById('temaBtn');
+
+    // Carregar tema salvo
+    if (localStorage.getItem("tema") === "dark") {
+      document.body.classList.add("dark");
+      temaBtn.textContent = "☀ Alterar Tema";
+    }
+
+    temaBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      const modo = document.body.classList.contains('dark') ? "dark" : "light";
+      localStorage.setItem("tema", modo);
+      temaBtn.textContent = modo === "dark" ? "☀ Alterar Tema" : "🌙 Alterar Tema";
+    });
+
+    // Carregar tarefas salvas
+    window.onload = () => {
+      const tarefasSalvas = JSON.parse(localStorage.getItem("tarefas")) || [];
+      tarefasSalvas.forEach(tarefa => {
+        criarTarefa(tarefa.texto, tarefa.completed);
+      });
+    };
+
+    btn.addEventListener('click', adicionarTarefa);
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        adicionarTarefa();
+      }
+    });
+
+    function adicionarTarefa() {
+      const texto = input.value.trim();
+      if (texto === '') return;
+      criarTarefa(texto, false);
+      salvarTarefas();
+      input.value = '';
+      input.focus();
+    }
+
+    function criarTarefa(texto, completed) {
+      const li = document.createElement('li');
+      li.textContent = texto;
+
+      if (completed) {
+        li.classList.add('completed');
+      }
+
+      const botoes = document.createElement('div');
+      botoes.classList.add('botoes');
+
+      const concluir = document.createElement('button');
+      concluir.textContent = '✔';
+      concluir.title = 'Concluir';
+      concluir.onclick = () => {
+        li.classList.toggle('completed');
+        salvarTarefas();
+      };
+
+      const editar = document.createElement('button');
+      editar.textContent = '✏';
+      editar.title = 'Editar';
+      editar.onclick = () => {
+        const novoTexto = prompt("Editar tarefa:", li.firstChild.textContent);
+        if (novoTexto !== null && novoTexto.trim() !== "") {
+          li.firstChild.textContent = novoTexto;
+          salvarTarefas();
+        }
+      };
+
+      const excluir = document.createElement('button');
+      excluir.textContent = '🗑';
+      excluir.title = 'Excluir';
+      excluir.onclick = () => {
+        lista.removeChild(li);
+        salvarTarefas();
+      };
+
+      botoes.appendChild(concluir);
+      botoes.appendChild(editar);
+      botoes.appendChild(excluir);
+
+      li.appendChild(botoes);
+      lista.appendChild(li);
+    }
+
+    function salvarTarefas() {
+      const tarefas = [];
+      document.querySelectorAll('#listaTarefas li').forEach(li => {
+        tarefas.push({
+          texto: li.firstChild.textContent,
+          completed: li.classList.contains('completed')
+        });
+      });
+      localStorage.setItem("tarefas", JSON.stringify(tarefas));
+    }
+  </script>
+</body>
+</html>
